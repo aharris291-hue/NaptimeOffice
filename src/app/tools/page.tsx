@@ -14,9 +14,9 @@ const tools = [
     body: "Give each family the yearly statement they need for taxes or their FSA.",
     ready: true,
   },
-  { href: "#", title: "Daycare receipt", body: "A clean receipt for any payment.", ready: false },
-  { href: "#", title: "Daycare invoice", body: "Bill a family for a week or month of care.", ready: false },
-  { href: "#", title: "Printable attendance sheet", body: "A weekly sign-in and sign-out sheet.", ready: false },
+  { href: "/tools/receipt", title: "Daycare receipt", body: "A clean receipt for any payment.", ready: true },
+  { href: "/tools/invoice", title: "Daycare invoice", body: "Bill a family for a week or month of care.", ready: true },
+  { href: "/tools/attendance-sheet", title: "Printable sign-in sheet", body: "Daily sign-in and sign-out sheets for the week.", ready: true },
 ];
 
 export default function ToolsPage() {

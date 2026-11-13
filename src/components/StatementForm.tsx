@@ -12,69 +12,8 @@ import {
   validate,
   warnings,
 } from "@/lib/statement";
-
-// Provider details are remembered on this device only. The tax ID is never remembered.
-const STORAGE_KEY = "naptime-office:statement-provider";
-const PROVIDER_FIELDS = ["country", "currency", "year", "providerName", "businessName", "providerAddress", "providerContact"] as const;
-
-function loadSaved(): Partial<StatementData> {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Partial<StatementData>) : {};
-  } catch {
-    return {};
-  }
-}
-
-function saveProvider(d: StatementData) {
-  try {
-    const keep = Object.fromEntries(PROVIDER_FIELDS.map((k) => [k, d[k]]));
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(keep));
-  } catch {
-    // Storage blocked (private browsing): nothing to do.
-  }
-}
-
-function Field(props: {
-  label: string;
-  hint?: string;
-  value: string;
-  onChange: (v: string) => void;
-  multiline?: boolean;
-  placeholder?: string;
-  inputMode?: "text" | "decimal" | "numeric";
-  autoComplete?: string;
-}) {
-  const id = props.label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  return (
-    <div>
-      <label htmlFor={id} className="field-label">
-        {props.label}
-      </label>
-      {props.multiline ? (
-        <textarea
-          id={id}
-          rows={2}
-          className="field-input"
-          value={props.value}
-          placeholder={props.placeholder}
-          onChange={(e) => props.onChange(e.target.value)}
-        />
-      ) : (
-        <input
-          id={id}
-          className="field-input"
-          value={props.value}
-          placeholder={props.placeholder}
-          inputMode={props.inputMode}
-          autoComplete={props.autoComplete ?? "off"}
-          onChange={(e) => props.onChange(e.target.value)}
-        />
-      )}
-      {props.hint && <p className="mt-1 text-xs text-ink-soft">{props.hint}</p>}
-    </div>
-  );
-}
+import Field from "@/components/Field";
+import { downloadBlob, loadProvider, saveProvider } from "@/lib/provider";
 
 export default function StatementForm() {
   const [d, setD] = useState<StatementData>(emptyStatement);
@@ -83,7 +22,13 @@ export default function StatementForm() {
   const [made, setMade] = useState<string | null>(null);
 
   useEffect(() => {
-    setD((cur) => ({ ...cur, ...loadSaved() }));
+    setD((cur) => {
+      const saved = loadProvider();
+      const pick = Object.fromEntries(
+        Object.entries(saved).filter(([k]) => k in cur && k !== "taxId"),
+      ) as Partial<StatementData>;
+      return { ...cur, ...pick };
+    });
   }, []);
 
   const set = <K extends keyof StatementData>(key: K) => (value: StatementData[K]) =>
@@ -101,14 +46,7 @@ export default function StatementForm() {
     try {
       saveProvider(d);
       const blob = await buildStatementPdf(d);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = statementFileName(d);
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      downloadBlob(blob, statementFileName(d));
       setMade(d.parentName);
     } finally {
       setBusy(false);

@@ -12,6 +12,15 @@ export default function SiteFooter() {
           <Link href="/tools/year-end-statement" className="hover:text-ink">
             Year-end statement
           </Link>
+          <Link href="/tools/invoice" className="hover:text-ink">
+            Invoice
+          </Link>
+          <Link href="/tools/receipt" className="hover:text-ink">
+            Receipt
+          </Link>
+          <Link href="/tools/attendance-sheet" className="hover:text-ink">
+            Sign-in sheet
+          </Link>
           <Link href="/tools" className="hover:text-ink">
             All free tools
           </Link>
