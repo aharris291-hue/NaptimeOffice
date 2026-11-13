@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+:root {
+  --cream: #fff8f0;
+  --paper: #ffffff;
+  --ink: #3d2c29;
+  --ink-soft: #6b5a55;
+  --peach: #e8775a;
+  --peach-dark: #c95c40;
+  --peach-soft: #fde6dc;
+  --sage: #6f9a7c;
+  --sage-soft: #e4efe6;
+  --sun: #f5c26b;
+  --line: #f0e2d6;
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-cream: var(--cream);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-peach: var(--peach);
+  --color-peach-dark: var(--peach-dark);
+  --color-peach-soft: var(--peach-soft);
+  --color-sage: var(--sage);
+  --color-sage-soft: var(--sage-soft);
+  --color-sun: var(--sun);
+  --color-line: var(--line);
+  --font-sans: ui-rounded, "SF Pro Rounded", "Nunito", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+.field-label {
+  @apply block text-sm font-semibold text-ink mb-1;
+}
+.field-input {
+  @apply w-full rounded-xl border border-line bg-paper px-3 py-2.5 text-base text-ink outline-none focus:border-peach focus:ring-2 focus:ring-peach-soft;
+}
+.btn-primary {
+  @apply inline-flex items-center justify-center rounded-full bg-peach px-6 py-3 font-bold text-white shadow-sm transition hover:bg-peach-dark disabled:opacity-50;
+}
+.btn-secondary {
+  @apply inline-flex items-center justify-center rounded-full border-2 border-peach px-6 py-2.5 font-bold text-peach-dark transition hover:bg-peach-soft;
+}
+.card {
+  @apply rounded-3xl border border-line bg-paper p-5 shadow-sm sm:p-6;
+}
