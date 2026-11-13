@@ -59,7 +59,7 @@ export default function Home() {
           <div>
             <h2 className="text-2xl font-extrabold">One simple price</h2>
             <p className="mt-2 text-ink-soft">
-              $15/month or $149/year after a 14-day free trial. No card needed to try it. Cancel anytime.
+              $29/month or $290/year after a 14-day free trial, with every feature included for up to 16 children. No card needed to try it. Cancel anytime.
             </p>
             <p className="mt-2 font-semibold text-sage">The full app opens in March 2027.</p>
           </div>
