@@ -202,7 +202,7 @@ export default function StatementForm() {
           </button>
           <p className="text-sm text-ink-soft">
             Doing this for every family every year? Naptime Office builds these automatically from the payments you
-            record, opening December 2026.
+            record, opening March 2027.
           </p>
         </div>
       )}

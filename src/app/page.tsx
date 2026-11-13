@@ -61,7 +61,7 @@ export default function Home() {
             <p className="mt-2 text-ink-soft">
               $15/month or $149/year after a 14-day free trial. No card needed to try it. Cancel anytime.
             </p>
-            <p className="mt-2 font-semibold text-sage">The full app opens in December 2026.</p>
+            <p className="mt-2 font-semibold text-sage">The full app opens in March 2027.</p>
           </div>
           <Link href="/tools/year-end-statement" className="btn-primary shrink-0">
             Try a free tool today

@@ -53,7 +53,7 @@ export default function SheetForm() {
           <p className="font-bold">Sheets downloaded: one page per day, ready to print.</p>
           <p className="mt-2 text-sm text-ink-soft">
             Tired of paper? Naptime Office lets parents sign in and out on your phone and keeps every record by date,
-            opening December 2026.
+            opening March 2027.
           </p>
         </div>
       )}
