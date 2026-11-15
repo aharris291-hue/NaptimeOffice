@@ -99,3 +99,27 @@ export type Payment = {
   method: string;
   reference: string;
 };
+
+export type Expense = {
+  id: string;
+  spent_on: string;
+  amount: number;
+  category: string;
+  vendor: string;
+  note: string;
+  home_expense: boolean;
+  business_pct: number;
+  receipt_path: string | null;
+};
+
+export type TimeSpace = { year: number; extra_hours: number; total_sqft: number; daycare_sqft: number };
+
+export type DocumentRow = {
+  id: string;
+  child_id: string | null;
+  title: string;
+  kind: string;
+  expires_on: string | null;
+  file_path: string | null;
+  notes: string;
+};

@@ -68,16 +68,63 @@ export function useBilling() {
   const [error, setError] = useState<string | null>(null);
   const reload = useCallback(async () => {
     const sb = supabase();
-    const [i, p] = await Promise.all([
-      sb.from("invoices").select("*").order("issue_date", { ascending: false }).order("number", { ascending: false }),
-      sb.from("payments").select("*").order("paid_on", { ascending: false }),
-    ]);
-    const err = i.error || p.error;
-    if (err) return setError(err.message);
-    setData({ invoices: i.data as Invoice[], payments: p.data as Payment[] });
+    try {
+      const [invoices, payments] = await Promise.all([
+        fetchAll<Invoice>((a, b) => sb.from("invoices").select("*").order("issue_date", { ascending: false }).order("number", { ascending: false }).range(a, b)),
+        fetchAll<Payment>((a, b) => sb.from("payments").select("*").order("paid_on", { ascending: false }).range(a, b)),
+      ]);
+      setData({ invoices, payments });
+    } catch (e) {
+      setError((e as Error).message);
+    }
   }, []);
   useEffect(() => {
     reload();
   }, [reload]);
   return { data, error, reload };
+}
+
+/** Signed URL for a private receipt or document file (valid ten minutes). */
+export async function fileUrl(path: string | null): Promise<string | null> {
+  if (!path) return null;
+  const { data } = await supabase().storage.from("files").createSignedUrl(path, 600);
+  return data?.signedUrl ?? null;
+}
+
+/** Uploads a receipt photo or document to the provider's private folder and returns its path. */
+export async function uploadFile(uid: string, folder: string, file: File): Promise<string> {
+  const isImage = file.type.startsWith("image/");
+  const body = isImage ? await shrinkImage(file, 1400) : file;
+  const ext = isImage ? "jpg" : (file.name.split(".").pop() || "pdf").toLowerCase();
+  const path = `${uid}/${folder}/${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase().storage.from("files").upload(path, body, { contentType: isImage ? "image/jpeg" : file.type || "application/pdf" });
+  if (error) throw new Error(error.message);
+  return path;
+}
+
+/** Loads one table's rows for the provider, newest first by the given column. */
+export function useRows<T>(table: string, order: string, ascending = false) {
+  const [rows, setRows] = useState<T[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const reload = useCallback(async () => {
+    const { data, error } = await supabase().from(table).select("*").order(order, { ascending, nullsFirst: false });
+    if (error) setError(error.message);
+    else setRows(data as T[]);
+  }, [table, order, ascending]);
+  useEffect(() => {
+    reload();
+  }, [reload]);
+  return { rows, error, reload };
+}
+
+/** Reads every matching row, 1000 at a time (Supabase returns at most 1000 per request). */
+export async function fetchAll<T>(build: (from: number, to: number) => PromiseLike<{ data: unknown; error: { message: string } | null }>): Promise<T[]> {
+  const out: T[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await build(from, from + 999);
+    if (error) throw new Error(error.message);
+    const rows = (data ?? []) as T[];
+    out.push(...rows);
+    if (rows.length < 1000) return out;
+  }
 }
