@@ -37,6 +37,8 @@ export default function SettingsPage() {
         late_fee_amount: Number(p.late_fee_amount) || 0,
         late_fee_per_minutes: Math.max(1, Number(p.late_fee_per_minutes) || 15),
         max_children: Math.max(1, Number(p.max_children) || 1),
+        payment_info: p.payment_info ?? "",
+        invoice_terms_days: Math.max(0, Number(p.invoice_terms_days) || 0),
         ratio_rules: rules
           .filter((r) => r.label.trim())
           .map((r) => ({ label: r.label.trim(), max_age_months: Number(r.max_age_months) || 0, max_per_adult: Math.max(1, Number(r.max_per_adult) || 1) })),
@@ -95,6 +97,15 @@ export default function SettingsPage() {
         <p className="text-sm text-ink-soft">
           Example: closing {p.close_time.slice(0, 5)}, {p.late_grace_minutes} minute grace, {p.currency}{p.late_fee_amount || 0} for every {p.late_fee_per_minutes} minutes. Set the fee to 0 to turn late fees off.
         </p>
+      </section>
+
+      <section className="card space-y-3">
+        <h2 className="font-bold">Invoices</h2>
+        <label className="block">
+          <span className="field-label">How parents can pay you</span>
+          <textarea className="field-input" rows={3} placeholder="e.g. Zelle to (555) 123-4567, Venmo @YourDaycare, or check made out to Jane Smith" value={p.payment_info ?? ""} onChange={(e) => set("payment_info", e.target.value)} />
+        </label>
+        <Text label="Invoices are due after (days)" inputMode="numeric" value={String(p.invoice_terms_days ?? 7)} onChange={(v) => set("invoice_terms_days", v as unknown as number)} />
       </section>
 
       <section className="card space-y-3">

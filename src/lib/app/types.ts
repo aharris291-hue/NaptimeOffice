@@ -17,6 +17,9 @@ export type Provider = {
   late_fee_per_minutes: number;
   ratio_rules: RatioRule[];
   max_children: number;
+  payment_info: string;
+  invoice_terms_days: number;
+  next_invoice_number: number;
 };
 
 export type Family = { id: string; name: string; notes: string; active: boolean };
@@ -61,7 +64,38 @@ export type Attendance = {
   out_signature: string | null;
   late_minutes: number;
   late_fee: number;
+  late_fee_invoice_id?: string | null;
   notes: string;
 };
 
 export const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+export type InvoiceItem = { description: string; qty: number; rate: number };
+
+export type Invoice = {
+  id: string;
+  family_id: string;
+  contact_id: string | null;
+  bill_to: string;
+  number: string;
+  period_start: string;
+  period_end: string;
+  issue_date: string;
+  due_date: string | null;
+  items: InvoiceItem[];
+  share: number;
+  total: number;
+  status: "open" | "void";
+  notes: string;
+};
+
+export type Payment = {
+  id: string;
+  family_id: string;
+  invoice_id: string | null;
+  paid_by: string;
+  amount: number;
+  paid_on: string;
+  method: string;
+  reference: string;
+};

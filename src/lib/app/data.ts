@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "./supabase";
-import type { Attendance, Child, Contact, Family } from "./types";
+import type { Attendance, Child, Contact, Family, Invoice, Payment } from "./types";
 
 export type Roster = { families: Family[]; children: Child[]; contacts: Contact[] };
 
@@ -60,4 +60,24 @@ export async function shrinkImage(file: File, max = 480): Promise<Blob> {
   canvas.height = Math.round(img.height * scale);
   canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
   return new Promise((res) => canvas.toBlob((b) => res(b!), "image/jpeg", 0.8));
+}
+
+/** All invoices and payments for the signed-in provider. */
+export function useBilling() {
+  const [data, setData] = useState<{ invoices: Invoice[]; payments: Payment[] } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const reload = useCallback(async () => {
+    const sb = supabase();
+    const [i, p] = await Promise.all([
+      sb.from("invoices").select("*").order("issue_date", { ascending: false }).order("number", { ascending: false }),
+      sb.from("payments").select("*").order("paid_on", { ascending: false }),
+    ]);
+    const err = i.error || p.error;
+    if (err) return setError(err.message);
+    setData({ invoices: i.data as Invoice[], payments: p.data as Payment[] });
+  }, []);
+  useEffect(() => {
+    reload();
+  }, [reload]);
+  return { data, error, reload };
 }
