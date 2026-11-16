@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Field from "@/components/Field";
 import { Logo } from "@/components/SiteHeader";
-import { isConfigured, supabase } from "@/lib/app/supabase";
+import { isConfigured, missingSettings, supabase } from "@/lib/app/supabase";
 
 // Sign in with a 6-digit code sent by email. Codes work better than links inside an
 // installed home-screen app, because a link would open in the regular browser.
@@ -19,21 +19,40 @@ export default function LoginPage() {
 
   async function sendCode() {
     setMsg(null);
+    if (!isConfigured()) {
+      return setMsg(`The app can't reach its database yet. In Vercel, add ${missingSettings().join(" and ")} under Settings → Environment Variables, then redeploy.`);
+    }
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) return setMsg("Enter a valid email address.");
     setBusy(true);
-    const { error } = await supabase().auth.signInWithOtp({ email: email.trim(), options: { shouldCreateUser: true } });
-    setBusy(false);
-    if (error) return setMsg(error.message);
-    setStep("code");
+    try {
+      const { error } = await supabase().auth.signInWithOtp({ email: email.trim(), options: { shouldCreateUser: true } });
+      if (error) {
+        const rate = /rate limit|too many|security purposes/i.test(error.message);
+        if (rate) return setMsg("Too many codes sent in a short time. Wait a few minutes, then try again.");
+        if (/fetch|network/i.test(error.message)) return setMsg("We couldn't reach the database. Check your internet connection. If it keeps happening, the Supabase address in Vercel may be wrong.");
+        return setMsg(`We couldn't send the code: ${error.message}`);
+      }
+      setStep("code");
+    } catch (e) {
+      setMsg(`We couldn't reach the database. Check your internet connection and try again. (${(e as Error).message})`);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function verify() {
     setMsg(null);
+    if (!/^\d{6}$/.test(code.trim())) return setMsg("Enter the 6-digit code from the email.");
     setBusy(true);
-    const { error } = await supabase().auth.verifyOtp({ email: email.trim(), token: code.trim(), type: "email" });
-    setBusy(false);
-    if (error) return setMsg("That code didn't work. Check the newest email and try again.");
-    router.replace("/app");
+    try {
+      const { error } = await supabase().auth.verifyOtp({ email: email.trim(), token: code.trim(), type: "email" });
+      if (error) return setMsg("That code didn't work. Check the newest email and try again.");
+      router.replace("/app");
+    } catch (e) {
+      setMsg(`We couldn't reach the database. (${(e as Error).message})`);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -41,18 +60,17 @@ export default function LoginPage() {
       <Link href="/" className="mb-8 self-center"><Logo /></Link>
       <div className="card space-y-4">
         <h1 className="text-2xl font-extrabold">{step === "email" ? "Sign in or start your free trial" : "Check your email"}</h1>
-        {!isConfigured() && <p className="text-peach-dark">The app isn&apos;t connected to its database yet.</p>}
         {step === "email" ? (
           <>
             <p className="text-ink-soft">We&apos;ll email you a 6-digit code. No password to remember.</p>
             <Field label="Email" value={email} onChange={setEmail} autoComplete="email" />
-            <button className="btn-primary w-full" disabled={busy || !isConfigured()} onClick={sendCode}>
+            <button className="btn-primary w-full" disabled={busy} onClick={sendCode}>
               {busy ? "Sending…" : "Email me a code"}
             </button>
           </>
         ) : (
           <>
-            <p className="text-ink-soft">Enter the code we sent to {email}.</p>
+            <p className="text-ink-soft">We sent a code to <b>{email}</b>. It can take a minute, and may land in spam or promotions.</p>
             <Field label="6-digit code" value={code} onChange={setCode} inputMode="numeric" autoComplete="one-time-code" />
             <button className="btn-primary w-full" disabled={busy} onClick={verify}>
               {busy ? "Checking…" : "Sign in"}
