@@ -13,11 +13,19 @@ export function isConfigured() {
   return Boolean(url && anonKey);
 }
 
+/** Which setting is missing, in plain words, for the sign-in screen. */
+export function missingSettings(): string[] {
+  const out: string[] = [];
+  if (!url) out.push("NEXT_PUBLIC_SUPABASE_URL");
+  if (!anonKey) out.push("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  return out;
+}
+
 export function supabase(): SupabaseClient {
   if (!url || !anonKey) throw new Error("Supabase is not configured yet.");
   if (!client) {
     client = createClient(url, anonKey, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "implicit" },
     });
   }
   return client;
