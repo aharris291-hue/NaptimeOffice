@@ -141,6 +141,8 @@ export default function SettingsPage() {
         {msg && <p className="mt-2 text-center font-semibold">{msg}</p>}
       </div>
 
+      <PasswordBox />
+
       <section className="card space-y-2">
         <p className="text-sm text-ink-soft">Signed in as {provider.email}</p>
         <button type="button" className="btn-secondary w-full" onClick={signOut}>Sign out</button>
@@ -155,5 +157,27 @@ function Text(props: { label: string; value: string; onChange: (v: string) => vo
       <span className="field-label">{props.label}</span>
       <input className="field-input" type={props.type ?? "text"} inputMode={props.inputMode} value={props.value ?? ""} onChange={(e) => props.onChange(e.target.value)} />
     </label>
+  );
+}
+
+function PasswordBox() {
+  const [pw, setPw] = useState("");
+  const [msg, setMsg] = useState<string | null>(null);
+  async function save() {
+    if (pw.length < 8) return setMsg("Use at least 8 characters.");
+    const { error } = await supabase().auth.updateUser({ password: pw });
+    setMsg(error ? error.message : "Password saved ✓ You can now sign in with it, no email needed.");
+    if (!error) setPw("");
+  }
+  return (
+    <section className="card space-y-2">
+      <h2 className="font-bold">Password (optional)</h2>
+      <p className="text-sm text-ink-soft">Set one if you&apos;d rather not wait for sign-in emails.</p>
+      <div className="flex gap-2">
+        <input type="password" autoComplete="new-password" className="field-input" placeholder="New password" value={pw} onChange={(e) => setPw(e.target.value)} />
+        <button type="button" className="btn-secondary shrink-0 px-4" onClick={save}>Save</button>
+      </div>
+      {msg && <p className="text-sm font-semibold">{msg}</p>}
+    </section>
   );
 }
