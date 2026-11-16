@@ -6,10 +6,11 @@ import { useApp } from "@/components/app/AuthGate";
 import Sheet from "@/components/app/Sheet";
 import SignaturePad from "@/components/app/SignaturePad";
 import PickupPhoto from "@/components/app/PickupPhoto";
-import { useAttendance, useRoster } from "@/lib/app/data";
+import { useAttendance, useRoster, useRows } from "@/lib/app/data";
+import { docStatus } from "@/lib/app/office";
 import { supabase } from "@/lib/app/supabase";
 import { ageLabel, checkRatios, clock, lateFee, lateMinutes, localDate } from "@/lib/app/time";
-import { DAYS, type Attendance, type Child, type Contact, type Provider } from "@/lib/app/types";
+import { DAYS, type Attendance, type Child, type Contact, type DocumentRow, type Provider } from "@/lib/app/types";
 import { formatMoney } from "@/lib/pdfKit";
 
 type Action = { child: Child; kind: "in" | "out"; row?: Attendance };
@@ -22,6 +23,8 @@ export default function TodayPage() {
   const [action, setAction] = useState<Action | null>(null);
   const [adults, setAdults] = useState(1);
   const [showAll, setShowAll] = useState(false);
+  const docs = useRows<DocumentRow>("documents", "expires_on", true);
+  const dueDocs = (docs.rows ?? []).filter((d) => ["expired", "soon"].includes(docStatus(d)));
 
   const dayName = DAYS[new Date().getDay()];
   const kids = useMemo(() => (data?.children ?? []).filter((c) => c.active), [data]);
@@ -62,6 +65,13 @@ export default function TodayPage() {
           <span className="block font-normal text-ink-soft">of {scheduled.length} expected</span>
         </p>
       </div>
+
+      {dueDocs.length > 0 && (
+        <Link href="/app/office/documents" className="card block border-sun bg-sun/20 py-3 text-sm">
+          <span className="font-bold">📁 {dueDocs.length} document{dueDocs.length === 1 ? "" : "s"} expired or expiring soon</span>
+          <span className="block text-ink-soft">{dueDocs.slice(0, 3).map((d) => d.title).join(", ")}{dueDocs.length > 3 ? "…" : ""}</span>
+        </Link>
+      )}
 
       <div className={`card flex items-center justify-between gap-3 py-3 ${ratio.ok ? "" : "border-peach bg-peach-soft"}`}>
         <div className="text-sm">
