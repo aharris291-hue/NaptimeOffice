@@ -25,7 +25,10 @@ export default function LoginPage() {
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) return setMsg("Enter a valid email address.");
     setBusy(true);
     try {
-      const { error } = await supabase().auth.signInWithOtp({ email: email.trim(), options: { shouldCreateUser: true } });
+      const { error } = await supabase().auth.signInWithOtp({
+        email: email.trim(),
+        options: { shouldCreateUser: true, emailRedirectTo: `${window.location.origin}/auth/callback` },
+      });
       if (error) {
         const rate = /rate limit|too many|security purposes/i.test(error.message);
         if (rate) return setMsg("Too many codes sent in a short time. Wait a few minutes, then try again.");
@@ -62,15 +65,18 @@ export default function LoginPage() {
         <h1 className="text-2xl font-extrabold">{step === "email" ? "Sign in or start your free trial" : "Check your email"}</h1>
         {step === "email" ? (
           <>
-            <p className="text-ink-soft">We&apos;ll email you a 6-digit code. No password to remember.</p>
+            <p className="text-ink-soft">We&apos;ll email you a sign-in link. No password to remember.</p>
             <Field label="Email" value={email} onChange={setEmail} autoComplete="email" />
             <button className="btn-primary w-full" disabled={busy} onClick={sendCode}>
-              {busy ? "Sending…" : "Email me a code"}
+              {busy ? "Sending…" : "Email me a sign-in link"}
             </button>
           </>
         ) : (
           <>
-            <p className="text-ink-soft">We sent a code to <b>{email}</b>. It can take a minute, and may land in spam or promotions.</p>
+            <p className="text-ink-soft">
+              We emailed <b>{email}</b>. Open the email on this device and tap <b>Sign in</b>. It can take a minute, and may land in spam or promotions.
+            </p>
+            <p className="text-sm text-ink-soft">If your email shows a 6-digit code instead, enter it here:</p>
             <Field label="6-digit code" value={code} onChange={setCode} inputMode="numeric" autoComplete="one-time-code" />
             <button className="btn-primary w-full" disabled={busy} onClick={verify}>
               {busy ? "Checking…" : "Sign in"}

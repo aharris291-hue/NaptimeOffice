@@ -25,7 +25,7 @@ export function supabase(): SupabaseClient {
   if (!url || !anonKey) throw new Error("Supabase is not configured yet.");
   if (!client) {
     client = createClient(url, anonKey, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "implicit" },
     });
   }
   return client;
