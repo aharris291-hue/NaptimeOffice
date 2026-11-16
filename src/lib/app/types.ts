@@ -123,3 +123,48 @@ export type DocumentRow = {
   file_path: string | null;
   notes: string;
 };
+
+export type EntryKind = "meal" | "bottle" | "diaper" | "potty" | "nap" | "mood" | "activity" | "note";
+
+export type DailyEntry = {
+  id: string;
+  child_id: string;
+  care_date: string;
+  kind: EntryKind;
+  started_at: string;
+  ended_at: string | null;
+  value: string;
+  note: string;
+};
+
+export type Supply = { id: string; child_id: string; item: string; level: "plenty" | "low" | "out"; updated_at: string };
+
+export type Incident = {
+  id: string;
+  child_id: string;
+  happened_at: string;
+  kind: string;
+  location: string;
+  description: string;
+  action_taken: string;
+  witnessed_by: string;
+  provider_signature: string | null;
+  parent_notified_at: string | null;
+  parent_name: string;
+  parent_signature: string | null;
+};
+
+export type Medication = {
+  id: string;
+  child_id: string;
+  name: string;
+  dose: string;
+  instructions: string;
+  start_date: string;
+  end_date: string | null;
+  authorized_by: string;
+  authorized_signature: string | null;
+  active: boolean;
+};
+
+export type MedDose = { id: string; medication_id: string; child_id: string; given_at: string; dose: string; given_by: string; note: string };

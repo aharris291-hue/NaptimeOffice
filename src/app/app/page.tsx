@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useApp } from "@/components/app/AuthGate";
 import Sheet from "@/components/app/Sheet";
@@ -10,7 +10,8 @@ import { useAttendance, useRoster, useRows } from "@/lib/app/data";
 import { docStatus } from "@/lib/app/office";
 import { supabase } from "@/lib/app/supabase";
 import { ageLabel, checkRatios, clock, lateFee, lateMinutes, localDate } from "@/lib/app/time";
-import { DAYS, type Attendance, type Child, type Contact, type DocumentRow, type Provider } from "@/lib/app/types";
+import { DAYS, type Attendance, type Child, type Contact, type DailyEntry, type DocumentRow, type Provider, type Supply } from "@/lib/app/types";
+import { duration, minutesBetween } from "@/lib/app/care";
 import { formatMoney } from "@/lib/pdfKit";
 
 type Action = { child: Child; kind: "in" | "out"; row?: Attendance };
@@ -25,6 +26,16 @@ export default function TodayPage() {
   const [showAll, setShowAll] = useState(false);
   const docs = useRows<DocumentRow>("documents", "expires_on", true);
   const dueDocs = (docs.rows ?? []).filter((d) => ["expired", "soon"].includes(docStatus(d)));
+  const supplies = useRows<Supply>("supplies", "updated_at");
+  const [naps, setNaps] = useState<DailyEntry[]>([]);
+  useEffect(() => {
+    const load = () =>
+      supabase().from("daily_entries").select("*").eq("care_date", today).eq("kind", "nap").is("ended_at", null)
+        .then(({ data }) => setNaps((data as DailyEntry[]) ?? []));
+    load();
+    const t = setInterval(load, 30000);
+    return () => clearInterval(t);
+  }, [today]);
 
   const dayName = DAYS[new Date().getDay()];
   const kids = useMemo(() => (data?.children ?? []).filter((c) => c.active), [data]);
@@ -97,10 +108,15 @@ export default function TodayPage() {
             <li key={c.id} className="card flex items-center gap-3 py-3">
               <span className={`h-3 w-3 shrink-0 rounded-full ${open ? "bg-sage" : done.length ? "bg-sun" : "bg-line"}`} aria-hidden />
               <div className="min-w-0 flex-1">
-                <p className="truncate font-bold">{c.first_name} {c.last_name}</p>
+                <Link href={`/app/child?id=${c.id}`} className="block truncate font-bold underline decoration-line underline-offset-4">{c.first_name} {c.last_name}</Link>
                 <p className="truncate text-sm text-ink-soft">
                   {open ? `In at ${clock(open.check_in)} by ${open.in_by}` : done.length ? `Went home ${clock(done[done.length - 1].check_out)}` : ageLabel(c.birth_date) || "Not here yet"}
                   {c.allergies && <span className="ml-1 font-semibold text-peach-dark">· Allergy</span>}
+                  {(() => {
+                    const n = naps.find((x) => x.child_id === c.id);
+                    return n ? <span className="ml-1 font-semibold text-sage">· 😴 {duration(minutesBetween(n.started_at, null))}</span> : null;
+                  })()}
+                  {(supplies.rows ?? []).some((x) => x.child_id === c.id && x.level !== "plenty") && <span className="ml-1 font-semibold">· Needs supplies</span>}
                 </p>
               </div>
               {open ? (
