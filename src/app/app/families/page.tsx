@@ -358,9 +358,43 @@ function ContactForm({ initial, familyId, uid, onDone }: { initial: Partial<Cont
       <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={c.is_guardian ?? false} onChange={(e) => set("is_guardian", e.target.checked)} /> Parent or legal guardian</label>
       <label className="block"><span className="field-label">Share of tuition they pay (%)</span><input inputMode="numeric" className="field-input" value={c.billing_share ?? 0} onChange={(e) => set("billing_share", e.target.value)} /></label>
       <label className="block"><span className="field-label">ID check notes</span><input className="field-input" placeholder="e.g. Ask for driver's license" value={c.id_notes ?? ""} onChange={(e) => set("id_notes", e.target.value)} /></label>
+      {c.id && <InviteParent contact={c as Contact} onChange={(v) => setC((x) => ({ ...x, ...v }))} />}
       {err && <p className="font-semibold text-peach-dark">{err}</p>}
       <button className="btn-primary w-full" disabled={busy}>{busy ? "Saving…" : "Save"}</button>
       {c.id && <button type="button" className="w-full text-sm font-semibold text-peach-dark" onClick={remove}>Remove person</button>}
     </form>
+  );
+}
+
+function InviteParent({ contact, onChange }: { contact: Contact; onChange: (v: Partial<Contact>) => void }) {
+  const [msg, setMsg] = useState<string | null>(null);
+  if (contact.user_id) return <p className="rounded-xl bg-sage-soft px-3 py-2 text-sm font-semibold">✓ Using the parent app</p>;
+  async function invite() {
+    setMsg(null);
+    if (!contact.email?.trim()) return setMsg("Add their email above and save first.");
+    const { error } = await supabase().from("contacts").update({ invited_at: new Date().toISOString() }).eq("id", contact.id);
+    if (error) return setMsg(error.message);
+    onChange({ invited_at: new Date().toISOString() });
+    const link = `${window.location.origin}/login?as=parent&email=${encodeURIComponent(contact.email.trim())}`;
+    const text = `Hi ${contact.full_name.split(" ")[0]}! You can now see your child's day, photos and invoices in Naptime Office. Sign in with ${contact.email.trim()} here: ${link}`;
+    const nav = navigator as Navigator & { share?: (d: ShareData) => Promise<void> };
+    try {
+      if (nav.share) await nav.share({ text });
+      else {
+        await navigator.clipboard.writeText(text);
+        setMsg("Invite copied. Paste it into a text or email to them.");
+      }
+    } catch {
+      /* share sheet closed */
+    }
+  }
+  return (
+    <div className="rounded-xl bg-cream px-3 py-2 text-sm">
+      <button type="button" className="font-bold text-peach-dark" onClick={invite}>
+        {contact.invited_at ? "Send the parent app invite again" : "Invite to parent app"}
+      </button>
+      {contact.invited_at && <p className="text-ink-soft">Invited. They join when they sign in with {contact.email}.</p>}
+      {msg && <p className="font-semibold">{msg}</p>}
+    </div>
   );
 }

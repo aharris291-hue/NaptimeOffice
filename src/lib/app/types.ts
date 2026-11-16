@@ -20,6 +20,9 @@ export type Provider = {
   payment_info: string;
   invoice_terms_days: number;
   next_invoice_number: number;
+  dnd_start?: string | null;
+  dnd_end?: string | null;
+  dnd_note?: string;
 };
 
 export type Family = { id: string; name: string; notes: string; active: boolean };
@@ -36,6 +39,9 @@ export type Contact = {
   billing_share: number;
   photo_path: string | null;
   id_notes: string;
+  user_id?: string | null;
+  invited_at?: string | null;
+  pin_hash?: string | null;
 };
 
 export type Child = {
@@ -168,3 +174,7 @@ export type Medication = {
 };
 
 export type MedDose = { id: string; medication_id: string; child_id: string; given_at: string; dose: string; given_by: string; note: string };
+
+export type Announcement = { id: string; title: string; body: string; publish_at: string; created_at: string };
+export type Photo = { id: string; path: string; caption: string; child_ids: string[]; taken_on: string; created_at: string };
+export type Message = { id: string; family_id: string; from_parent: boolean; sender_name: string; body: string; read_at: string | null; created_at: string };

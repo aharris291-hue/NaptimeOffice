@@ -26,13 +26,15 @@ export default function AuthCallback() {
     }
     const sb = supabase();
     let done = false;
-    const go = () => {
+    const go = async (userId: string) => {
       if (done) return;
       done = true;
-      router.replace("/app");
+      // Providers go to their app; parents go to the parent view.
+      const { data } = await sb.from("providers").select("id").eq("id", userId).maybeSingle();
+      router.replace(data ? "/app" : "/parent");
     };
-    const { data: sub } = sb.auth.onAuthStateChange((_e, session) => session && go());
-    sb.auth.getSession().then(({ data }) => (data.session ? go() : null));
+    const { data: sub } = sb.auth.onAuthStateChange((_e, session) => session && go(session.user.id));
+    sb.auth.getSession().then(({ data }) => (data.session ? go(data.session.user.id) : null));
     const t = setTimeout(() => !done && setError("We couldn't finish signing you in. Ask for a new link and open it on this device."), 8000);
     return () => {
       sub.subscription.unsubscribe();

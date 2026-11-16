@@ -38,6 +38,9 @@ export default function SettingsPage() {
         late_fee_per_minutes: Math.max(1, Number(p.late_fee_per_minutes) || 15),
         max_children: Math.max(1, Number(p.max_children) || 1),
         payment_info: p.payment_info ?? "",
+        dnd_start: p.dnd_start || null,
+        dnd_end: p.dnd_end || null,
+        dnd_note: p.dnd_note ?? "",
         invoice_terms_days: Math.max(0, Number(p.invoice_terms_days) || 0),
         ratio_rules: rules
           .filter((r) => r.label.trim())
@@ -97,6 +100,16 @@ export default function SettingsPage() {
         <p className="text-sm text-ink-soft">
           Example: closing {p.close_time.slice(0, 5)}, {p.late_grace_minutes} minute grace, {p.currency}{p.late_fee_amount || 0} for every {p.late_fee_per_minutes} minutes. Set the fee to 0 to turn late fees off.
         </p>
+      </section>
+
+      <section className="card space-y-3">
+        <h2 className="font-bold">Do not disturb</h2>
+        <p className="text-sm text-ink-soft">During these hours, parents see a note that messages will be read later, like during naptime.</p>
+        <div className="grid grid-cols-2 gap-3">
+          <Text label="From" type="time" value={(p.dnd_start ?? "").slice(0, 5)} onChange={(v) => set("dnd_start", v)} />
+          <Text label="Until" type="time" value={(p.dnd_end ?? "").slice(0, 5)} onChange={(v) => set("dnd_end", v)} />
+        </div>
+        <Text label="Note for parents (optional)" value={p.dnd_note ?? ""} onChange={(v) => set("dnd_note", v)} />
       </section>
 
       <section className="card space-y-3">

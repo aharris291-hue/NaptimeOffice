@@ -128,3 +128,22 @@ export async function fetchAll<T>(build: (from: number, to: number) => PromiseLi
     if (rows.length < 1000) return out;
   }
 }
+
+/** Signed URLs for many photos at once (valid one hour). */
+export async function photoUrls(paths: string[]): Promise<Record<string, string>> {
+  if (!paths.length) return {};
+  const { data } = await supabase().storage.from("photos").createSignedUrls(paths, 3600);
+  const out: Record<string, string> = {};
+  for (const d of data ?? []) if (d.path && d.signedUrl) out[d.path] = d.signedUrl;
+  return out;
+}
+
+/** True when the provider's do-not-disturb hours cover the given time. */
+export function inQuietHours(start?: string | null, end?: string | null, now = new Date()) {
+  if (!start || !end) return false;
+  const m = now.getHours() * 60 + now.getMinutes();
+  const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+  const s = toMin(start);
+  const e = toMin(end);
+  return s <= e ? m >= s && m < e : m >= s || m < e;
+}
