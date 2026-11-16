@@ -128,6 +128,7 @@ export default function TodayPage() {
           );
         })}
       </ul>
+      <Link href="/app/kiosk" className="btn-secondary w-full">📱 Open parent check-in (PIN or QR)</Link>
       <button className="w-full text-sm font-semibold text-ink-soft" onClick={() => setShowAll((s) => !s)}>
         {showAll ? "Show only today's schedule" : "Show all children (drop-ins)"}
       </button>
