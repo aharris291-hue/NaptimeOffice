@@ -77,6 +77,10 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   if (error) return <Centered><p className="font-bold text-peach-dark">{error}</p></Centered>;
   if (!session || !provider) return <Centered><p className="text-ink-soft">Loading…</p></Centered>;
 
+  if (path.startsWith("/app/kiosk")) {
+    return <AppCtx.Provider value={{ session, provider, reloadProvider }}>{children}</AppCtx.Provider>;
+  }
+
   return (
     <AppCtx.Provider value={{ session, provider, reloadProvider }}>
       <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col pb-24">

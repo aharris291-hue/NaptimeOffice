@@ -10,6 +10,8 @@ import { shrinkImage, useRoster, type Roster } from "@/lib/app/data";
 import { supabase } from "@/lib/app/supabase";
 import { ageLabel } from "@/lib/app/time";
 import { DAYS, type Child, type Contact, type Family } from "@/lib/app/types";
+import { QR_PREFIX, pinHash } from "@/lib/app/checkin";
+import { shareOrDownload } from "@/lib/app/billing";
 
 export default function FamiliesPage() {
   return (
@@ -359,6 +361,7 @@ function ContactForm({ initial, familyId, uid, onDone }: { initial: Partial<Cont
       <label className="block"><span className="field-label">Share of tuition they pay (%)</span><input inputMode="numeric" className="field-input" value={c.billing_share ?? 0} onChange={(e) => set("billing_share", e.target.value)} /></label>
       <label className="block"><span className="field-label">ID check notes</span><input className="field-input" placeholder="e.g. Ask for driver's license" value={c.id_notes ?? ""} onChange={(e) => set("id_notes", e.target.value)} /></label>
       {c.id && <InviteParent contact={c as Contact} onChange={(v) => setC((x) => ({ ...x, ...v }))} />}
+      {c.id && c.can_pickup && <KioskPin contact={c as Contact} uid={uid} onChange={(v) => setC((x) => ({ ...x, ...v }))} />}
       {err && <p className="font-semibold text-peach-dark">{err}</p>}
       <button className="btn-primary w-full" disabled={busy}>{busy ? "Saving…" : "Save"}</button>
       {c.id && <button type="button" className="w-full text-sm font-semibold text-peach-dark" onClick={remove}>Remove person</button>}
@@ -395,6 +398,57 @@ function InviteParent({ contact, onChange }: { contact: Contact; onChange: (v: P
       </button>
       {contact.invited_at && <p className="text-ink-soft">Invited. They join when they sign in with {contact.email}.</p>}
       {msg && <p className="font-semibold">{msg}</p>}
+    </div>
+  );
+}
+
+function KioskPin({ contact, uid, onChange }: { contact: Contact; uid: string; onChange: (v: Partial<Contact>) => void }) {
+  const [pin, setPin] = useState("");
+  const [msg, setMsg] = useState<string | null>(null);
+  const [qr, setQr] = useState<string | null>(null);
+
+  async function save() {
+    setMsg(null);
+    if (!/^\d{4,6}$/.test(pin)) return setMsg("Use 4 to 6 numbers.");
+    const hash = await pinHash(uid, pin);
+    const sb = supabase();
+    const clash = await sb.from("contacts").select("id").eq("pin_hash", hash).neq("id", contact.id).limit(1);
+    if (clash.data?.length) return setMsg("Someone else already uses that PIN. Pick another.");
+    const { error } = await sb.from("contacts").update({ pin_hash: hash }).eq("id", contact.id);
+    if (error) return setMsg(error.message);
+    onChange({ pin_hash: hash });
+    const QRCode = (await import("qrcode")).default;
+    setQr(await QRCode.toDataURL(QR_PREFIX + pin, { margin: 1, width: 360 }));
+    setPin("");
+  }
+
+  async function shareCard() {
+    if (!qr) return;
+    const blob = await (await fetch(qr)).blob();
+    const file = new File([blob], `${contact.full_name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-checkin-qr.png`, { type: "image/png" });
+    const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
+    if (nav.canShare?.({ files: [file] })) {
+      try { await nav.share({ files: [file], text: `Your check-in QR code. Hold it up to the daycare tablet to sign in and out.` }); return; } catch { return; }
+    }
+    await shareOrDownload(blob, file.name, "Check-in QR code");
+  }
+
+  return (
+    <div className="space-y-2 rounded-xl bg-cream px-3 py-2 text-sm">
+      <p className="font-bold">Check-in PIN {contact.pin_hash ? "✓ set" : ""}</p>
+      <div className="flex gap-2">
+        <input className="field-input" inputMode="numeric" maxLength={6} placeholder={contact.pin_hash ? "New PIN" : "4 to 6 numbers"} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} />
+        <button type="button" className="btn-secondary shrink-0 px-3" onClick={save}>{contact.pin_hash ? "Change" : "Set"}</button>
+      </div>
+      {qr && (
+        <div className="space-y-2 text-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={qr} alt="Check-in QR code" className="mx-auto w-40" />
+          <button type="button" className="font-bold text-peach-dark" onClick={shareCard}>Send this QR card to {contact.full_name.split(" ")[0]}</button>
+          <p className="text-ink-soft">Only shown now. PINs are stored scrambled, so set a new one if it&apos;s lost.</p>
+        </div>
+      )}
+      {msg && <p className="font-semibold text-peach-dark">{msg}</p>}
     </div>
   );
 }
