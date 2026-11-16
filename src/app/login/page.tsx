@@ -17,6 +17,8 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [asParent, setAsParent] = useState(false);
+  const [usePassword, setUsePassword] = useState(false);
+  const [password, setPassword] = useState("");
 
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
@@ -42,13 +44,29 @@ export default function LoginPage() {
       });
       if (error) {
         const rate = /rate limit|too many|security purposes/i.test(error.message);
-        if (rate) return setMsg("Too many codes sent in a short time. Wait a few minutes, then try again.");
+        if (rate) return setMsg("Too many sign-in emails were sent recently. Please wait up to an hour, or sign in with a password if you've set one.");
         if (/fetch|network/i.test(error.message)) return setMsg("We couldn't reach the database. Check your internet connection. If it keeps happening, the Supabase address in Vercel may be wrong.");
         return setMsg(`We couldn't send the code: ${error.message}`);
       }
       setStep("code");
     } catch (e) {
       setMsg(`We couldn't reach the database. Check your internet connection and try again. (${(e as Error).message})`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function passwordSignIn() {
+    setMsg(null);
+    if (!isConfigured()) return setMsg("The app can't reach its database yet.");
+    if (!email.trim() || !password) return setMsg("Enter your email and password.");
+    setBusy(true);
+    try {
+      const { error } = await supabase().auth.signInWithPassword({ email: email.trim(), password });
+      if (error) return setMsg("That email and password didn't match. You can use an email link instead.");
+      router.replace("/auth/callback");
+    } catch (e) {
+      setMsg(`We couldn't reach the database. (${(e as Error).message})`);
     } finally {
       setBusy(false);
     }
@@ -78,8 +96,21 @@ export default function LoginPage() {
           <>
             <p className="text-ink-soft">{asParent ? "Use the email address your daycare has on file. " : ""}We&apos;ll email you a sign-in link. No password to remember.</p>
             <Field label="Email" value={email} onChange={setEmail} autoComplete="email" />
-            <button className="btn-primary w-full" disabled={busy} onClick={sendCode}>
-              {busy ? "Sending…" : "Email me a sign-in link"}
+            {usePassword ? (
+              <>
+                <label className="block">
+                  <span className="field-label">Password</span>
+                  <input type="password" className="field-input" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                </label>
+                <button className="btn-primary w-full" disabled={busy} onClick={passwordSignIn}>{busy ? "Signing in…" : "Sign in"}</button>
+              </>
+            ) : (
+              <button className="btn-primary w-full" disabled={busy} onClick={sendCode}>
+                {busy ? "Sending…" : "Email me a sign-in link"}
+              </button>
+            )}
+            <button className="w-full text-sm font-semibold text-ink-soft" onClick={() => { setUsePassword(!usePassword); setMsg(null); }}>
+              {usePassword ? "Email me a link instead" : "I have a password"}
             </button>
           </>
         ) : (
