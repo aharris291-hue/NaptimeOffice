@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Field from "@/components/Field";
@@ -16,6 +16,13 @@ export default function LoginPage() {
   const [step, setStep] = useState<"email" | "code">("email");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [asParent, setAsParent] = useState(false);
+
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    setAsParent(q.get("as") === "parent");
+    if (q.get("email")) setEmail(q.get("email")!);
+  }, []);
 
   async function sendCode() {
     setMsg(null);
@@ -27,7 +34,11 @@ export default function LoginPage() {
     try {
       const { error } = await supabase().auth.signInWithOtp({
         email: email.trim(),
-        options: { shouldCreateUser: true, emailRedirectTo: `${window.location.origin}/auth/callback` },
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: asParent ? { role: "parent" } : undefined,
+        },
       });
       if (error) {
         const rate = /rate limit|too many|security purposes/i.test(error.message);
@@ -50,7 +61,7 @@ export default function LoginPage() {
     try {
       const { error } = await supabase().auth.verifyOtp({ email: email.trim(), token: code.trim(), type: "email" });
       if (error) return setMsg("That code didn't work. Check the newest email and try again.");
-      router.replace("/app");
+      router.replace("/auth/callback");
     } catch (e) {
       setMsg(`We couldn't reach the database. (${(e as Error).message})`);
     } finally {
@@ -62,10 +73,10 @@ export default function LoginPage() {
     <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-10">
       <Link href="/" className="mb-8 self-center"><Logo /></Link>
       <div className="card space-y-4">
-        <h1 className="text-2xl font-extrabold">{step === "email" ? "Sign in or start your free trial" : "Check your email"}</h1>
+        <h1 className="text-2xl font-extrabold">{step === "email" ? (asParent ? "Parent sign in" : "Sign in or start your free trial") : "Check your email"}</h1>
         {step === "email" ? (
           <>
-            <p className="text-ink-soft">We&apos;ll email you a sign-in link. No password to remember.</p>
+            <p className="text-ink-soft">{asParent ? "Use the email address your daycare has on file. " : ""}We&apos;ll email you a sign-in link. No password to remember.</p>
             <Field label="Email" value={email} onChange={setEmail} autoComplete="email" />
             <button className="btn-primary w-full" disabled={busy} onClick={sendCode}>
               {busy ? "Sending…" : "Email me a sign-in link"}
